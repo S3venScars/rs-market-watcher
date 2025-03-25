@@ -1,0 +1,30 @@
+{
+  "indexes": [
+    "Archaeology",
+    "Construction",
+    "Construction_flatpacks",
+    "Cooking",
+    "Crafting",
+    "Divination",
+    "Farming",
+    "Firemaking",
+    "Fishing",
+    "Fletching",
+    "Herblore",
+    "Hunter",
+    "Invention",
+    "Magic",
+    "Melee_armour",
+    "Melee_weapons",
+    "Mining",
+    "Necromancy",
+    "Prayer",
+    "Ranged",
+    "Runecrafting",
+    "Slayer",
+    "Smithing",
+    "Summoning",
+    "Woodcutting"
+  ],
+  "updated_at": "2025-03-25T04:51:48.936927"
+}

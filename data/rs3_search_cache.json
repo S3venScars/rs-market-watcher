@@ -1,0 +1,56 @@
+{
+  "rune dart tip": {
+    "id": 824,
+    "ge_price": 360,
+    "high_alch": 12,
+    "low_alch": 8,
+    "name": "Exchange:Rune dart tip",
+    "url": "https://runescape.wiki/w/Exchange:rune_dart_tip",
+    "last_updated": "2025-03-25T05:37:59.324347"
+  },
+  "air rune": {
+    "id": 556,
+    "ge_price": 34,
+    "high_alch": 3,
+    "low_alch": 2,
+    "name": "Exchange:Air rune",
+    "url": "https://runescape.wiki/w/Exchange:air_rune",
+    "last_updated": "2025-03-25T05:37:59.450920"
+  },
+  "rune bolts": {
+    "id": 9144,
+    "ge_price": 255,
+    "high_alch": 180,
+    "low_alch": 120,
+    "name": "Exchange:Rune bolts",
+    "url": "https://runescape.wiki/w/Exchange:rune_bolts",
+    "last_updated": "2025-03-25T05:37:59.580637"
+  },
+  "santa hat": {
+    "id": 1050,
+    "ge_price": 4939529775,
+    "high_alch": 96,
+    "low_alch": 64,
+    "name": "Exchange:Santa hat",
+    "url": "https://runescape.wiki/w/Exchange:santa_hat",
+    "last_updated": "2025-03-25T05:38:00.002680"
+  },
+  "bane pickaxe": {
+    "id": 45154,
+    "ge_price": 43769,
+    "high_alch": 8000,
+    "low_alch": 5333,
+    "name": "Exchange:Bane pickaxe",
+    "url": "https://runescape.wiki/w/Exchange:Bane_pickaxe",
+    "last_updated": "2025-03-25T05:38:00.104161"
+  },
+  "rune pickaxe": {
+    "id": 45548,
+    "ge_price": 18402,
+    "high_alch": 1000,
+    "low_alch": 667,
+    "name": "Exchange:Rune pickaxe",
+    "url": "https://runescape.wiki/w/Exchange:rune_pickaxe",
+    "last_updated": "2025-03-25T05:38:00.238299"
+  }
+}
