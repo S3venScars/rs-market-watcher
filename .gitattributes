@@ -1,0 +1,12 @@
+# Automatically normalize text files
+* text=auto
+
+# Force JSON files to use LF endings
+*.json text eol=lf
+
+# Python scripts and config files
+*.py text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
