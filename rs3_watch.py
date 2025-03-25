@@ -6,6 +6,9 @@ from fetchers.rs3_scraper import get_exchange_info
 from fetchers.rs3_index import load_cached_index
 from fetchers import rs3_search
 from storage import rs3_watchlist as watchlist
+import sys
+
+VERSION = "1.1.0"
 
 console = Console()
 
@@ -257,4 +260,8 @@ def menu():
         clear_screen()
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--version":
+        print(f"RS3 Market Watcher v{VERSION}")
+        sys.exit(0)
     menu()
+
