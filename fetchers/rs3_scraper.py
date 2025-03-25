@@ -10,7 +10,8 @@ BASE_URL = "https://runescape.wiki/w/Exchange:"
 
 
 def get_exchange_info(item_name: str) -> dict:
-    url = BASE_URL + item_name.replace(" ", "_")
+    slug = item_name.strip().lower().replace(" ", "_").replace("+", "%2B")
+    url = f"https://runescape.wiki/w/Exchange:{slug}"
     response = requests.get(url, headers=HEADERS)
 
     if response.status_code != 200:

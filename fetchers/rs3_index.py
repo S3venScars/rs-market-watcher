@@ -1,3 +1,4 @@
+import sys
 import os
 import json
 import time
@@ -7,7 +8,14 @@ from rich.console import Console
 
 console = Console()
 
-CACHE_FILE = "data/rs3_index.json"
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+
+CACHE_FILE = resource_path("data/rs3_index.json")
+os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
 CACHE_EXPIRY = 4 * 3600  # 4 hours
 
 INDEX_SKILLS = [
