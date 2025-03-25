@@ -8,7 +8,7 @@ from fetchers import rs3_search
 from storage import rs3_watchlist as watchlist
 import sys
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 console = Console()
 

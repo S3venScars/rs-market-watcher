@@ -1,26 +1,70 @@
 [
   {
     "id": 824,
-    "name": "rune dart tip"
+    "name": "rune_dart_tip"
   },
   {
-    "id": 556,
-    "name": "air rune"
+    "id": 199,
+    "name": "grimy_guam"
   },
   {
-    "id": 9144,
-    "name": "rune bolts"
+    "id": 48243,
+    "name": "Grimy arbuck"
   },
   {
-    "id": 1050,
-    "name": "santa hat"
+    "id": 1397,
+    "name": "Air battlestaff"
   },
   {
-    "id": 45154,
-    "name": "Bane pickaxe"
+    "id": 1393,
+    "name": "Fire battlestaff"
   },
   {
-    "id": 45548,
-    "name": "rune pickaxe"
+    "id": 1399,
+    "name": "Earth battlestaff"
+  },
+  {
+    "id": 1395,
+    "name": "Water battlestaff"
+  },
+  {
+    "id": 30209,
+    "name": "Airut bones"
+  },
+  {
+    "id": 6729,
+    "name": "Dagannoth bones"
+  },
+  {
+    "id": 536,
+    "name": "Dragon bones"
+  },
+  {
+    "id": 48075,
+    "name": "Dinosaur bones"
+  },
+  {
+    "id": 51858,
+    "name": "Dragonkin bones"
+  },
+  {
+    "id": 18832,
+    "name": "Frost dragon bones"
+  },
+  {
+    "id": 35008,
+    "name": "Hardened dragon bones"
+  },
+  {
+    "id": 4834,
+    "name": "Ourg bones"
+  },
+  {
+    "id": 6812,
+    "name": "Wyvern bones"
+  },
+  {
+    "id": 35010,
+    "name": "Reinforced dragon bones"
   }
 ]
