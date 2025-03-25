@@ -1,98 +1,105 @@
 import os
 import json
+import time
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from rich.console import Console
 
-BASE_URL = "https://runescape.wiki/w/RuneScape:Grand_Exchange_Market_Watch"
+console = Console()
+
 CACHE_FILE = "data/rs3_index.json"
-META_FILE = "data/rs3_skill_index.json"
-CACHE_EXPIRY_HOURS = 4
-HEADERS = {"User-Agent": "RS3-Market-Watcher/1.0 (by S3venScars)"}
+CACHE_EXPIRY = 4 * 3600  # 4 hours
+
+INDEX_SKILLS = [
+    "Archaeology", "Construction", "Construction_flatpacks", "Cooking", "Crafting",
+    "Divination", "Farming", "Firemaking", "Fishing", "Fletching", "Herblore", "Hunter",
+    "Invention", "Magic", "Melee_armour", "Melee_weapons", "Mining", "Necromancy",
+    "Prayer", "Ranged", "Runecrafting", "Slayer", "Smithing", "Summoning", "Woodcutting"
+]
+
+BASE_URL = "https://runescape.wiki/w/RuneScape:Grand_Exchange_Market_Watch/"
+HEADERS = {
+    "User-Agent": "S3venScars-RS3-Market-Watcher/1.0 (https://github.com/S3venScars)"
+}
 
 
-def fetch_market_index() -> list[dict]:
-    with open(META_FILE, "r", encoding="utf-8") as f:
-        config = json.load(f)
+def fetch_market_index():
+    all_items = []
 
-    indexes = config.get("indexes", [])
-    items = {}
+    for skill in INDEX_SKILLS:
+        url = BASE_URL + skill
+        console.print(f"Fetching index from: {skill}", style="blue")
 
-    for page in indexes:
-        print(f"[blue]Fetching index from:[/blue] {page}")
-        url = f"{BASE_URL}/{page}"
         try:
-            response = requests.get(url, headers=HEADERS)
-            soup = BeautifulSoup(response.text, "lxml")
-
-            table = soup.find("table", class_=lambda c: c and "wikitable" in c)
-            if not table:
-                print(f"[yellow]Warning: No valid item table found on {page}[/yellow]")
+            resp = requests.get(url, headers=HEADERS)
+            if resp.status_code != 200:
+                console.print(f"[red]Failed to fetch {skill}: HTTP {resp.status_code}[/red]")
                 continue
 
-            rows = table.find_all("tr")[1:]
+            soup = BeautifulSoup(resp.text, "html.parser")
 
-            for row in rows:
-                cols = row.find_all("td")
-                if len(cols) < 10:
-                    continue
+            tables = soup.select("table.wikitable.sortable")
+            console.print(f"Found {len(tables)} table(s) on {skill}", style="cyan")
 
-                name_link = cols[1].find("a")
-                url_link = cols[9].find("a")
-                if not name_link or not url_link:
-                    continue
+            if not tables:
+                console.print(f"[yellow]Warning: No valid item table found on {skill}[/yellow]")
+                continue
 
-                name = name_link.text.strip()
-                price = cols[2].text.strip().replace(",", "").replace("?", "")
-                try:
-                    price = int(price)
-                except ValueError:
-                    price = None
+            for table in tables:
+                rows = table.find_all("tr")[1:]  # Skip header
 
-                item_url = "https://runescape.wiki" + url_link["href"]
+                for row in rows:
+                    cols = row.find_all("td")
+                    if len(cols) < 2:
+                        continue
 
-                key = name.lower()
-                if key not in items:
-                    items[key] = {
+                    link_tag = cols[1].find("a")
+                    if not link_tag:
+                        continue
+
+                    name = link_tag.get("title", "").strip()
+                    url = "https://runescape.wiki" + link_tag.get("href", "").strip()
+
+                    price = cols[2].text.strip().replace(",", "") if len(cols) >= 3 else None
+                    price = int(price) if price and price.isdigit() else None
+
+                    all_items.append({
                         "name": name,
-                        "price": price,
-                        "url": item_url
-                    }
+                        "url": url,
+                        "price": price
+                    })
 
         except Exception as e:
-            print(f"[red]Error fetching {page}: {e}[/red]")
+            console.print(f"[red]Error processing {skill}: {e}[/red]")
 
-    final_list = list(items.values())
+    return all_items
 
-    os.makedirs("data", exist_ok=True)
+
+def save_index(items):
     with open(CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump(final_list, f, indent=2)
-
-    # Update timestamp
-    config["updated_at"] = datetime.utcnow().isoformat()
-    with open(META_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=2)
-
-    return final_list
+        json.dump({
+            "timestamp": time.time(),
+            "items": items
+        }, f, indent=2)
 
 
-def load_cached_index(force_refresh=False) -> list[dict]:
-    if force_refresh or not os.path.exists(CACHE_FILE):
-        print("[cyan]Refreshing index: no cache found or forced refresh...[/cyan]")
-        return fetch_market_index()
-
-    with open(META_FILE, "r", encoding="utf-8") as f:
-        meta = json.load(f)
-
-    try:
-        last_updated = datetime.fromisoformat(meta["updated_at"])
-    except Exception:
-        print("[yellow]Warning: invalid or missing timestamp, forcing refresh...[/yellow]")
-        return fetch_market_index()
-
-    if datetime.utcnow() - last_updated > timedelta(hours=CACHE_EXPIRY_HOURS):
-        print("[cyan]Refreshing index: data is older than 4 hours...[/cyan]")
-        return fetch_market_index()
+def load_cached_index(force_refresh=False):
+    if not os.path.exists(CACHE_FILE) or force_refresh:
+        console.print("[cyan]Refreshing index: no cache found or forced refresh...[/cyan]")
+        items = fetch_market_index()
+        save_index(items)
+        return items
 
     with open(CACHE_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+
+    timestamp = data.get("timestamp", 0)
+    age = time.time() - timestamp
+
+    if age > CACHE_EXPIRY:
+        console.print("[cyan]Refreshing index: data is older than 4 hours...[/cyan]")
+        items = fetch_market_index()
+        save_index(items)
+        return items
+
+    return data.get("items", [])

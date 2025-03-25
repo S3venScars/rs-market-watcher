@@ -4,22 +4,20 @@ from rich.table import Table
 from rich.panel import Panel
 from fetchers.rs3_scraper import get_exchange_info
 from fetchers.rs3_index import load_cached_index
-from storage import rs3_watchlist as watchlist
 from fetchers import rs3_search
+from storage import rs3_watchlist as watchlist
 
 console = Console()
 
-
 def clear_screen():
-    os.system("cls" if os.name == "nt" else "clear")
-
+    input("\n[Press Enter to continue...]")
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 def show_watchlist():
     items = watchlist.load_watchlist()
 
     if not items:
         console.print("[yellow]Your watchlist is empty.[/yellow]")
-        input("\nPress Enter to continue...")
         return
 
     table = Table(title="RS3 Market Watchlist")
@@ -37,7 +35,7 @@ def show_watchlist():
         try:
             item_data = get_exchange_info(item["name"])
         except Exception as e:
-            console.print(f"[red]Failed to fetch {item['name']}: {e}[/red]")
+            console.print(f"[red]Failed to fetch Exchange:{item['name']}: {e}[/red]")
             continue
 
         ge_price = item_data.get("ge_price", 0)
@@ -61,28 +59,31 @@ def show_watchlist():
         )
 
     console.print(table)
-    input("\nPress Enter to continue...")
-
 
 def manual_add():
-    item_name = input("Enter item name to add: ").strip()
+    item_name = input("Enter item name to add: ").strip().lower().replace(" ", "_")
     try:
-        item_data = rs3_search.search_item(item_name)
-        watchlist.add_item(item_data["id"], item_data["name"])
-        console.print(f"[green]Added {item_data['name']} (ID {item_data['id']}) to watchlist.[/green]")
+        item_data = get_exchange_info(item_name)
+        watchlist.add_item(item_data["item_id"], item_data["name"])
+        console.print(f"[green]Added {item_data['name']} (ID {item_data['item_id']}) to watchlist.[/green]")
     except Exception as e:
-        console.print(f"[red]Failed to add item: {e}[/red]")
-    input("\nPress Enter to continue...")
-
+        console.print(f"[red]Item not found or failed to fetch: {e}[/red]")
 
 def search_items():
     term = input("Enter search term: ").strip().lower()
     index = load_cached_index()
-    results = [item for item in index if term in item["name"].lower()]
+
+    seen = set()
+    results = []
+
+    for item in index:
+        name = item["name"].lower()
+        if term in name and name not in seen:
+            seen.add(name)
+            results.append(item)
 
     if not results:
         console.print("[yellow]No items found.[/yellow]")
-        input("\nPress Enter to continue...")
         return
 
     results.sort(key=lambda x: x["name"])
@@ -101,7 +102,7 @@ def search_items():
         table.add_column("URL", overflow="fold")
 
         for item in page_results:
-            table.add_row(item["name"], str(item["price"] or "—"), item["url"])
+            table.add_row(item["name"], str(item.get("price", "—")), item["url"])
 
         console.print(table)
         console.print("[dim][N]ext, [P]rev, [A]dd <name>, [Q]uit[/dim]")
@@ -114,31 +115,50 @@ def search_items():
             page -= 1
         elif cmd.startswith("a "):
             arg = cmd[2:].strip()
-            try:
-                item_data = rs3_search.search_item(arg)
-                watchlist.add_item(item_data["id"], item_data["name"])
-                console.print(f"[green]Added {item_data['name']} (ID {item_data['id']}) to watchlist.[/green]")
-            except Exception as e:
-                console.print(f"[red]Failed to fetch or add item: {e}[/red]")
+            match = next((item for item in results if item["name"].lower() == arg.lower()), None)
+            if match:
+                try:
+                    item_data = get_exchange_info(match["name"])
+                    watchlist.add_item(item_data["item_id"], item_data["name"])
+                    console.print(f"[green]Added {item_data['name']} (ID {item_data['item_id']}) to watchlist.[/green]")
+                except Exception as e:
+                    console.print(f"[red]Failed to fetch item: {e}[/red]")
+            else:
+                console.print("[red]Name not found in current page.[/red]")
         elif cmd == "q":
             break
         else:
             console.print("[red]Unknown command.[/red]")
 
-
 def simulate_profit():
-    item_id_input = input("Enter item ID to simulate: ").strip()
-    if not item_id_input.isdigit():
-        console.print("[red]Invalid ID.[/red]")
+    items = watchlist.load_watchlist()
+
+    if not items:
+        console.print("[yellow]Your watchlist is empty.[/yellow]")
+        return
+
+    table = Table(title="Watchlist Items")
+    table.add_column("ID", justify="right", style="cyan")
+    table.add_column("Name", style="bold")
+    for item in items:
+        table.add_row(str(item["id"]), item["name"])
+    console.print(table)
+
+    raw_input = input("Enter item ID or name to simulate: ").strip().lower()
+
+    selected = None
+    if raw_input.isdigit():
+        item_id = int(raw_input)
+        selected = next((item for item in items if item["id"] == item_id), None)
+    else:
+        selected = next((item for item in items if item["name"].lower() == raw_input), None)
+
+    if not selected:
+        console.print("[red]Item not found in watchlist.[/red]")
         return
 
     try:
-        item_id = int(item_id_input)
-        name = next(item["name"] for item in watchlist.load_watchlist() if item["id"] == item_id)
-        item_data = get_exchange_info(name)
-    except StopIteration:
-        console.print("[red]Item ID not found in watchlist.[/red]")
-        return
+        item_data = get_exchange_info(selected["name"])
     except Exception as e:
         console.print(f"[red]Item fetch failed: {e}[/red]")
         return
@@ -151,13 +171,14 @@ def simulate_profit():
 
     ge_price = item_data.get("ge_price", 0)
     high_alch = item_data.get("high_alch", 0)
+
     buy_total = ge_price * quantity
     sell_total = ge_price * quantity
     profit_range = sell_total - buy_total
     alch_profit = (high_alch - ge_price) * quantity
 
     panel = Panel.fit(
-        f"[bold cyan]{item_data['name']}[/bold cyan] (ID {item_id})\n\n"
+        f"[bold cyan]{item_data['name']}[/bold cyan] (ID {item_data['item_id']})\n\n"
         f"[green]Buy (GE):[/green] {ge_price} gp × {quantity} = {buy_total:,} gp\n"
         f"[yellow]Estimated Sell:[/yellow] {sell_total:,} gp\n"
         f"[yellow]Profit Range:[/yellow] {profit_range:,} gp\n\n"
@@ -168,87 +189,72 @@ def simulate_profit():
     )
 
     console.print(panel)
-    input("\nPress Enter to continue...")
 
+def remove_item():
+    items = watchlist.load_watchlist()
 
-def wiki_item_search():
-    item_name = input("Enter item name to search: ").strip()
-    try:
-        data = rs3_search.search_item(item_name)
-        table = Table(title=f"Search Result: {data['name']}")
-        table.add_column("Field", style="bold")
-        table.add_column("Value", justify="right")
-        table.add_row("Name", data["name"])
-        table.add_row("ID", str(data["id"]))
-        table.add_row("GE Price", f"{data['ge_price']:,} gp")
-        table.add_row("High Alch", f"{data['high_alch']:,} gp")
-        table.add_row("Exchange Page", data["url"])
-        console.print(table)
-    except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
-    input("\nPress Enter to continue...")
+    if not items:
+        console.print("[yellow]Your watchlist is empty.[/yellow]")
+        return
 
+    table = Table(title="Watchlist Items")
+    table.add_column("ID", justify="right", style="cyan")
+    table.add_column("Name", style="bold")
+    for item in items:
+        table.add_row(str(item["id"]), item["name"])
+    console.print(table)
 
-def refresh_search_cache():
-    rs3_search.clear_search_cache()
-    console.print("[green]Search cache cleared! Reloading watchlist...[/green]")
+    raw_input = input("Enter item ID or name to remove: ").strip().lower()
 
-    for item in watchlist.load_watchlist():
-        try:
-            rs3_search.search_item(item["name"])
-        except Exception as e:
-            console.print(f"[red]Failed to refresh {item['name']}: {e}[/red]")
+    selected = None
+    if raw_input.isdigit():
+        item_id = int(raw_input)
+        selected = next((item for item in items if item["id"] == item_id), None)
+    else:
+        selected = next((item for item in items if item["name"].lower() == raw_input), None)
 
-    console.print("[bold green]Watchlist data refreshed and re-cached![/bold green]")
-    input("\nPress Enter to continue...")
+    if not selected:
+        console.print("[red]Item not found in watchlist.[/red]")
+        return
 
+    watchlist.remove_item(selected["id"])
+    console.print(f"[red]Removed {selected['name']} (ID {selected['id']}) from watchlist.[/red]")
 
 def menu():
     while True:
-        clear_screen()
-        console.print("[bold cyan]RS3 Market Watcher[/bold cyan]\n")
+        console.print("[bold cyan]RS3 Market Watcher[/bold cyan]")
         console.print("[1] Show watchlist")
         console.print("[2] Add item by name")
-        console.print("[3] Remove item by ID")
+        console.print("[3] Remove item by ID or name")
         console.print("[4] Search items")
         console.print("[5] Simulate market profit")
         console.print("[6] Search wiki item by name")
         console.print("[7] Refresh search cache")
-        console.print("[8] Export cache to Excel")
         console.print("[E] Exit")
 
-        choice = input("\nSelect option: ").strip().lower()
+        choice = input("Select option: ").strip().lower()
 
         if choice == "1":
             show_watchlist()
         elif choice == "2":
             manual_add()
         elif choice == "3":
-            try:
-                item_id = int(input("Enter item ID to remove: "))
-                watchlist.remove_item(item_id)
-                console.print(f"[red]Removed {item_id} from watchlist.[/red]")
-            except ValueError:
-                console.print("[red]Invalid ID.[/red]")
-                input("\nPress Enter to continue...")
+            remove_item()
         elif choice == "4":
             search_items()
         elif choice == "5":
             simulate_profit()
         elif choice == "6":
-            wiki_item_search()
+            search_items()
         elif choice == "7":
-            refresh_search_cache()
-        elif choice == "8":
-            rs3_search.export_cache_to_excel()
-            console.print("[green]Cache exported to watch_cache.xlsx[/green]")
-            input("\nPress Enter to continue...")
+            rs3_search.refresh_cache(force=True)
+            console.print("[green]Search cache refreshed.[/green]")
         elif choice == "e":
             break
         else:
             console.print("[red]Invalid option. Please try again.[/red]")
-            input("\nPress Enter to continue...")
 
+        clear_screen()
 
 if __name__ == "__main__":
     menu()
